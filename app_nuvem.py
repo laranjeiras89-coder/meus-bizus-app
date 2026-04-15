@@ -15,7 +15,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 def carregar_dados_nuvem(nome_aba, colunas_padrao):
     try:
         # Lê a aba específica do teu Google Sheets
-        df = conn.read(worksheet=nome_aba)
+        df = conn.read(worksheet=nome_aba, ttl=0)
         df = df.dropna(how="all") # Remove linhas totalmente vazias
         # Garante que o Código é sempre texto e sem espaços
         if 'Código' in df.columns:
