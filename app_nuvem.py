@@ -14,15 +14,24 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 def carregar_dados_nuvem(nome_aba, colunas_padrao):
     try:
-        # Lê a aba específica do teu Google Sheets
+        # O ttl=0 garante que lê sempre os dados frescos
         df = conn.read(worksheet=nome_aba, ttl=0)
         df = df.dropna(how="all") # Remove linhas totalmente vazias
-        # Garante que o Código é sempre texto e sem espaços
-        if 'Código' in df.columns:
-            df['Código'] = df['Código'].astype(str).str.strip().replace('.0', '', regex=False)
+        
+        # --- O BIZU DA LIMPEZA DOS ZEROS (.0) E VAZIOS (NAN) ---
+        colunas_para_limpar = ['Código', 'Ano']
+        for col in colunas_para_limpar:
+            if col in df.columns:
+                # 1. Converte tudo para texto
+                df[col] = df[col].astype(str)
+                # 2. Apaga o ".0" que fica preso no final dos números
+                df[col] = df[col].str.replace(r'\.0$', '', regex=True)
+                # 3. Limpa a palavra 'nan' deixando a célula vazia novamente
+                df[col] = df[col].replace('nan', '').str.strip()
+                
         return df
     except:
-        # Se a aba estiver vazia ou der erro, cria uma tabela vazia com as colunas certas
+        # Se a aba der erro, cria uma tabela vazia com as colunas certas
         return pd.DataFrame(columns=colunas_padrao)
 
 def guardar_dados_nuvem(df, nome_aba):
