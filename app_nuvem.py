@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 from streamlit_gsheets import GSheetsConnection
 
-st.set_page_config(page_title="Gestor Bizu Cloud Pro", layout="wide")
+st.set_page_config(page_title="Banco de Questões - APP", layout="wide")
 
 LISTA_MATERIAS = ["Direito Penal", "Estatística", "Processual Penal", "Economia"]
 
@@ -34,7 +34,7 @@ COLUNAS_EXCLUSOES = ['Código', 'Matéria', 'Banca', 'Assunto', 'Data Exclusão'
 df = carregar_dados_nuvem("Banco", COLUNAS_BANCO)
 
 # --- INTERFACE ---
-st.title("☁️ Painel de Gestão de Bizus")
+st.title("☁️ Banco de Questões - APP")
 
 aba_pesquisa, aba_add, aba_rel, aba_config = st.tabs([
     "🔍 Pesquisar e Gerir", 
