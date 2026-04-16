@@ -26,16 +26,21 @@ def carregar_dados_nuvem(nome_aba, colunas_padrao):
     try:
         df = conn.read(worksheet=nome_aba, ttl=0)
         df = df.dropna(how="all")
-        # Limpeza de zeros e NaNs
+        
+        # --- A MÁGICA CONTRA O TYPEERROR ---
+        # 1. Força o Pandas a converter TODA a tabela para texto genérico
+        df = df.astype(str)
+        # 2. Limpa os 'nan' ou 'None' que o Pandas cria quando converte vazios para texto
+        df = df.replace('nan', '').replace('None', '')
+        
+        # 3. Limpeza final de zeros (.0) presos no final dos números
         for col in ['Código', 'Ano']:
             if col in df.columns:
-                df[col] = df[col].astype(str).str.replace(r'\.0$', '', regex=True).replace('nan', '')
+                df[col] = df[col].str.replace(r'\.0$', '', regex=True).str.strip()
+                
         return df
     except:
         return pd.DataFrame(columns=colunas_padrao)
-
-def guardar_dados_nuvem(df, nome_aba):
-    conn.update(worksheet=nome_aba, data=df)
 
 # Colunas padrão
 COL_BANCO = ['Código', 'Matéria', 'Ano', 'Banca', 'Assunto', 'Comentário', 'Última Modificação']
