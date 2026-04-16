@@ -8,16 +8,15 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="Banco de Questões - APP", layout="wide")
 
 # --- CONFIGURAÇÕES E CONSTANTES ---
-# Adicionada uma string vazia no início para permitir não preencher
 LISTA_MATERIAS = ["", "Direito Penal", "Processual Penal", "Estatística", "Economia"]
 LISTA_BANCAS = ["", "CESPE", "FGV", "FCC", "VUNESP", "FADESP", "CESGRANRIO", "Outra"]
 
-# Função de validação de Ano (Formato 20XX ou Vazio)
+# Função de validação de Ano
 def validar_ano(ano_str):
     ano_str = str(ano_str).strip()
-    if not ano_str: # Se estiver vazio, passa na validação
+    if not ano_str: 
         return True
-    return bool(re.match(r"^20\d{2}$", ano_str)) # Se tiver algo, tem que ser 20XX
+    return bool(re.match(r"^20\d{2}$", ano_str)) 
 
 # --- CONEXÃO COM GOOGLE SHEETS ---
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -27,13 +26,10 @@ def carregar_dados_nuvem(nome_aba, colunas_padrao):
         df = conn.read(worksheet=nome_aba, ttl=0)
         df = df.dropna(how="all")
         
-        # --- A MÁGICA CONTRA O TYPEERROR ---
-        # 1. Força o Pandas a converter TODA a tabela para texto genérico
+        # A mágica contra o TypeError
         df = df.astype(str)
-        # 2. Limpa os 'nan' ou 'None' que o Pandas cria quando converte vazios para texto
         df = df.replace('nan', '').replace('None', '')
         
-        # 3. Limpeza final de zeros (.0) presos no final dos números
         for col in ['Código', 'Ano']:
             if col in df.columns:
                 df[col] = df[col].str.replace(r'\.0$', '', regex=True).str.strip()
@@ -42,12 +38,19 @@ def carregar_dados_nuvem(nome_aba, colunas_padrao):
     except:
         return pd.DataFrame(columns=colunas_padrao)
 
+# >>> ESTA FOI A FUNÇÃO QUE SUMIU SEM QUERER! <<<
+def guardar_dados_nuvem(df, nome_aba):
+    conn.update(worksheet=nome_aba, data=df)
+
 # Colunas padrão
 COL_BANCO = ['Código', 'Matéria', 'Ano', 'Banca', 'Assunto', 'Comentário', 'Última Modificação']
 COL_EXC = ['Código', 'Matéria', 'Banca', 'Assunto', 'Data Exclusão']
 
 # Carregamento inicial
 df = carregar_dados_nuvem("Banco", COL_BANCO)
+
+# --- INTERFACE ---
+# (A partir daqui o seu código continua igualzinho...)
 
 # --- INTERFACE ---
 st.title("📚 Banco de Questões - APP")
