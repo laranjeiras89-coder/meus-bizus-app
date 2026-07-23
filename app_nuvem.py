@@ -43,7 +43,7 @@ def guardar_dados_nuvem(df, nome_aba):
     conn.update(worksheet=nome_aba, data=df)
 
 # Colunas padrão
-COL_BANCO = ['Código', 'Matéria', 'Ano', 'Banca', 'Assunto', 'Comentário', 'Última Modificação']
+COL_BANCO = ['Código', 'Matéria', 'Ano', 'Banca', 'Concurso', 'Assunto', 'Comentário', 'Última Modificação']
 COL_EXC = ['Código', 'Matéria', 'Banca', 'Assunto', 'Data Exclusão']
 COL_ASSUNTOS = ['Matéria', 'Assunto']
 
@@ -97,13 +97,41 @@ aba_pesquisa, aba_add, aba_rel, aba_import = st.tabs([
 # --- 1. ABA PESQUISAR E GERIR ---
 with aba_pesquisa:
     search = st.text_input("Filtrar questões (Código, Assunto, Banca...):")
+
+    # --- Filtros de coluna ---
+    fc1, fc2, fc3 = st.columns(3)
+
+    anos_disponiveis = sorted(
+        [a for a in df['Ano'].astype(str).str.strip().unique() if a != ''],
+        reverse=True
+    )
+    f_anos = fc1.multiselect("Ano", anos_disponiveis)
+
+    materias_disponiveis = sorted(
+        [m for m in df['Matéria'].astype(str).str.strip().unique() if m != '']
+    )
+    f_materias = fc2.multiselect("Matéria", materias_disponiveis)
+
+    bancas_disponiveis = sorted(
+        [b for b in df['Banca'].astype(str).str.strip().unique() if b != '']
+    )
+    f_bancas = fc3.multiselect("Banca", bancas_disponiveis)
+
     df_filt = df.copy()
     if search:
         mask = df_filt.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)
         df_filt = df_filt[mask]
+    if f_anos:
+        df_filt = df_filt[df_filt['Ano'].astype(str).isin(f_anos)]
+    if f_materias:
+        df_filt = df_filt[df_filt['Matéria'].isin(f_materias)]
+    if f_bancas:
+        df_filt = df_filt[df_filt['Banca'].isin(f_bancas)]
+
+    st.caption(f"{len(df_filt)} de {len(df)} questões exibidas.")
 
     selecao = st.dataframe(
-        df_filt[['Código', 'Matéria', 'Ano', 'Banca', 'Assunto', 'Última Modificação']],
+        df_filt[['Código', 'Matéria', 'Ano', 'Banca', 'Concurso', 'Assunto', 'Última Modificação']],
         use_container_width=True, hide_index=True, on_select="rerun", selection_mode="single-row"
     )
 
@@ -143,6 +171,9 @@ with aba_pesquisa:
             idx_b = LISTA_BANCAS.index(b_at) if b_at in LISTA_BANCAS else 0
             e_banca = c3.selectbox("Banca", LISTA_BANCAS, index=idx_b)
 
+            # Concurso
+            e_concurso = st.text_input("Concurso", value=str(row.get('Concurso', '')))
+
             # Comentário
             e_coment = st.text_area("Comentário / Bizu", value=str(row.get('Comentário', '')), height=250)
 
@@ -166,6 +197,7 @@ with aba_pesquisa:
                     df.at[idx_selecionado, 'Matéria'] = e_mat
                     df.at[idx_selecionado, 'Ano'] = e_ano
                     df.at[idx_selecionado, 'Banca'] = e_banca
+                    df.at[idx_selecionado, 'Concurso'] = e_concurso
                     df.at[idx_selecionado, 'Assunto'] = e_assu
                     df.at[idx_selecionado, 'Comentário'] = e_coment
                     df.at[idx_selecionado, 'Última Modificação'] = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -203,6 +235,7 @@ with aba_add:
         n_cod = c1.text_input("Código (Chave Única)*")
         n_ano = c2.text_input("Ano (Ex: 2024 ou vazio)")
         n_ban = c3.selectbox("Banca", LISTA_BANCAS)
+        n_concurso = st.text_input("Concurso")
         n_com = st.text_area("Comentário / Bizu*", height=200)
 
         st.caption("* Campos obrigatórios. Assunto também é obrigatório para Direito Penal.")
@@ -222,7 +255,7 @@ with aba_add:
             else:
                 nova = pd.DataFrame([{
                     'Código': n_cod.strip(), 'Matéria': n_mat, 'Ano': n_ano,
-                    'Banca': n_ban, 'Assunto': n_ass, 'Comentário': n_com,
+                    'Banca': n_ban, 'Concurso': n_concurso, 'Assunto': n_ass, 'Comentário': n_com,
                     'Última Modificação': datetime.now().strftime("%d/%m/%Y %H:%M")
                 }])
                 df = pd.concat([df, nova], ignore_index=True)
@@ -287,6 +320,44 @@ with aba_rel:
         else:
             st.info("Nenhuma banca preenchida.")
 
+    col_g3, col_g4 = st.columns(2)
+    with col_g3:
+        st.write("**Questões por Ano**")
+        anos_validos = df[df['Ano'].astype(str).str.strip() != ''].copy()
+        if not anos_validos.empty:
+            st.bar_chart(anos_validos['Ano'].value_counts().sort_index())
+        else:
+            st.info("Nenhum ano preenchido.")
+
+    with col_g4:
+        st.write("**Top 10 Concursos**")
+        concursos_validos = df[df['Concurso'].astype(str).str.strip() != '']
+        if not concursos_validos.empty:
+            st.bar_chart(concursos_validos['Concurso'].value_counts().head(10))
+        else:
+            st.info("Nenhum concurso preenchido ainda.")
+
+    st.markdown("---")
+
+    st.write("#### 📌 Cobertura de Assuntos (Direito Penal)")
+    st.caption("Assuntos que já constam na lista de validação mas ainda não têm nenhuma questão comentada no banco.")
+    assuntos_dpen = df_assuntos_global[df_assuntos_global['Matéria'] == "Direito Penal"]['Assunto'].dropna()
+    assuntos_dpen = sorted(set(a.strip() for a in assuntos_dpen if a.strip() != ''))
+    assuntos_com_questao = set(
+        df[(df['Matéria'] == "Direito Penal") & (df['Assunto'].astype(str).str.strip() != '')]['Assunto'].str.strip()
+    )
+    assuntos_sem_questao = [a for a in assuntos_dpen if a not in assuntos_com_questao]
+    if assuntos_dpen:
+        pct_cobertura = 100 * (len(assuntos_dpen) - len(assuntos_sem_questao)) / len(assuntos_dpen)
+        st.metric("Cobertura de Assuntos", f"{pct_cobertura:.0f}%", help=f"{len(assuntos_dpen) - len(assuntos_sem_questao)} de {len(assuntos_dpen)} assuntos com pelo menos 1 questão comentada.")
+        if assuntos_sem_questao:
+            with st.expander(f"Ver {len(assuntos_sem_questao)} assunto(s) sem nenhuma questão comentada"):
+                st.table(pd.DataFrame({'Assunto sem questão comentada': assuntos_sem_questao}))
+        else:
+            st.success("✅ Todos os assuntos da lista já têm pelo menos 1 questão comentada.")
+    else:
+        st.info("Nenhum assunto cadastrado na aba 'Assuntos' para Direito Penal.")
+
     st.markdown("---")
 
     st.write("#### 🎯 Top 5 Assuntos de Cada Matéria")
@@ -335,6 +406,7 @@ with aba_import:
                     'Matéria': mat_import,
                     'Ano': row.get('Ano', ''),
                     'Banca': row.get('Banca', ''),
+                    'Concurso': row.get('Concurso', ''),
                     'Assunto': row.get('Assunto', ''),
                     'Comentário': row.get('Comentário', ''),
                     'Última Modificação': datetime.now().strftime("%d/%m/%Y %H:%M")
