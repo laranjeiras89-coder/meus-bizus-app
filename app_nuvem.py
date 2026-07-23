@@ -5,7 +5,7 @@ import re
 from streamlit_gsheets import GSheetsConnection
 
 # Configuração da Página
-st.set_page_config(page_title="Banco de Questões - APP", layout="wide")
+st.set_page_config(page_title="Banco de Questões Comentadas - APP", layout="wide")
 
 # --- CONFIGURAÇÕES E CONSTANTES ---
 LISTA_MATERIAS = ["", "Direito Penal", "Processual Penal", "Estatística", "Economia"]
