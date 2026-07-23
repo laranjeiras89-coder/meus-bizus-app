@@ -5,7 +5,7 @@ import re
 from streamlit_gsheets import GSheetsConnection
 
 # Configuração da Página
-st.set_page_config(page_title="Banco de Questões Comentadas - APP", layout="wide")
+st.set_page_config(page_title="Banco de Questões - APP", layout="wide")
 
 # --- CONFIGURAÇÕES E CONSTANTES ---
 LISTA_MATERIAS = ["", "Direito Penal", "Processual Penal", "Estatística", "Economia"]
@@ -85,7 +85,7 @@ df = carregar_dados_nuvem("Banco", COL_BANCO)
 df_assuntos_global = carregar_assuntos_nuvem()
 
 # --- INTERFACE ---
-st.title("📚 Banco de Questões - APP")
+st.title("📚 Banco de Questões Comentadas - APP")
 
 aba_pesquisa, aba_add, aba_rel, aba_import = st.tabs([
     "🔍 Pesquisar e Gerir",
